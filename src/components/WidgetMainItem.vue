@@ -65,7 +65,10 @@ export default defineComponent({
     },
     setUrlIcon(): string {
       return this.event.iconCode
-        ? `./src/assets/images/${this.iconItem[this.event.iconCode]}.svg`
+        ? new URL(
+            `../assets/images/${this.iconItem[this.event.iconCode]}.svg`,
+            import.meta.url
+          ).href
         : (console.log("нет иконки"), "#");
     },
     setTimeEvent(): string {
