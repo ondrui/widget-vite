@@ -1,0 +1,62 @@
+.container-item {
+  &.primary {
+    background-color: $color-primary-light;
+
+    & > div:nth-child(1) {
+      color: $color-primary-darker;
+      background-color: $color-primary-dark;
+    }
+    & > div:nth-child(1) > div:nth-child(1) {
+      color: $color-white;
+      background-color: $color-primary-darker;
+    }
+    & > div:nth-child(2) > div:nth-child(1) {
+      color: $color-primary-darker;
+    }
+  }
+
+  &.warning {
+    background-color: $color-warning-light;
+
+    & > div:nth-child(1) {
+      color: $color-warning-darker;
+      background-color: $color-warning-dark;
+    }
+    & > div:nth-child(2) {
+      background-color: $color-white;
+      border: 1px solid $color-warning-border-text;
+      border-radius: 30px;
+      margin: 16px 7px 15px 6px;
+    }
+    & > div:nth-child(1) > div:nth-child(1) {
+      color: $color-white;
+      background-color: $color-warning-darker;
+    }
+    & div:nth-child(2) > div:nth-child(2) {
+      padding: 6px 14px 12px 8px;
+      color: $color-warning-font;
+      background-color: $color-white;
+      border-radius: 30px;
+    }
+    & > div:nth-child(2) > div:nth-child(1) {
+      margin-left: 19px;
+    }
+  }
+
+  &.danger {
+    background-color: $color-danger-light;
+
+    & > div:nth-child(1) {
+      color: $color-danger-darker;
+      background-color: $color-danger-dark;
+    }
+    & > div:nth-child(1) > div:nth-child(1) {
+      color: $color-white;
+      background-color: $color-danger-darker;
+    }
+    & > div:nth-child(2) > div:nth-child(2) {
+      color: $color-danger-darker;
+      margin-left: 8px;
+    }
+  }
+}
