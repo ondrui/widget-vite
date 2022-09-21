@@ -16,7 +16,7 @@
          * - применен только один данный фильтр
          */
         disable:
-          filter.amount === 0 || (totalActiveFilters === 1 && filter.isActive),
+          filter.amount === 0 || (totalActiveFilters <= 1 && filter.isActive),
       }"
       v-for="filter in filters"
       :key="`fw-${filter.code}`"
@@ -86,14 +86,14 @@ export default defineComponent({
   props: {
     filters: {
       type: Array as PropType<Filters[]>,
-      requare: true,
+      required: true,
     },
     /**
      * totalActiveFilters - Общее количество примененных фильтров
      */
     totalActiveFilters: {
       type: Number,
-      require: true,
+      required: true,
     },
   },
   emits: ["filtered", "remove"],
