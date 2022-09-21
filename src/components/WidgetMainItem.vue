@@ -1,4 +1,8 @@
 <template>
+  <!--
+    Условия отображения блока с датой:
+    - свойство isDayShow объекта event, который приходит через пропсы, установлено в true и указано слово порядка даты setDayInDayInfo[0].
+  -->
   <div
     class="day-info"
     :class="index !== 0 ? '' : 'day-info-zero-index'"
@@ -27,21 +31,45 @@
 import { defineComponent } from "vue";
 import type { PropType } from "vue";
 import type { Data } from "@/types/types";
-
+/**
+ * Интерфейс для объекта со свойствами, которые связывают код типа
+ * предупреждения eventType из объекта event
+ * и класс CSS устанавливающий цветовую схему предупреждения.
+ */
 interface CodeColor {
   [index: number]: string;
 }
-
+/**
+ * Интерфейс для объекта со свойствами, которые связывают код иконки
+ * предупреждения iconCode из объекта event и названием файла иконки.
+ */
 interface IconItem {
   [index: number]: string;
 }
 
 export default defineComponent({
   props: {
+    /**
+     * Объект со свойствами, которые определяют содержание, внешний вид предупреждения
+     * и необходимасть отображения блока даты.
+     * @example
+     * {"eventType":1,
+     * "eventTime":[1662613200000,1663075800000],
+     * "timeFormat":"year, month, day",
+     * "titleText":"внимание",
+     * "eventText":"8-Thursday, September 8th 2022, 8:00:00 am Максимальный уровень
+     * ультрофиолетового излучения за день.",
+     * "iconCode":1,
+     * "isDayShow":true}
+     */
     event: {
       type: Object as PropType<Data>,
       required: true,
     },
+    /**
+     * Порядковый индекс предупреждения. Необходим для установки доп класса CSS
+     * 'day-info-zero-index'  предупреждению с индексом 0.
+     */
     index: Number,
   },
   data() {
@@ -58,11 +86,21 @@ export default defineComponent({
     };
   },
   computed: {
+    /**
+     * Геттер для полуяения класса CSS цветовой схемы предупреждения
+     * @example
+     * // returns 'warning'
+     */
     setEvent(): string {
       return this.event.eventType
         ? this.codeColor[this.event.eventType]
         : (console.log("несуществующий код eventType"), "primary");
     },
+    /**
+     * Геттер для получения пути к файлу с иконкой
+     * @example
+     * // returns '@/assets/images/uv-index.svg'
+     */
     setUrlIcon(): string {
       return this.event.iconCode
         ? new URL(
@@ -71,7 +109,18 @@ export default defineComponent({
           ).href
         : (console.log("нет иконки"), "#");
     },
+    /**
+     * Геттер для получения время действия предупреждения и его срока.
+     * Может быть точным (одно значение) или интервальным (два значения).
+     * @example
+     * // returns 'с 08:00 вчера до 16:30 послезавтра'
+     * // returns '08:00'
+     */
     setTimeEvent(): string {
+      /**
+       * Проверка значения свойства eventTime и преобразование этого значения в нужный
+       * формат отображения времени.
+       */
       if (typeof this.event.eventTime === "number") {
         let date = new Date(this.event.eventTime).toLocaleTimeString("ru", {
           hour: "2-digit",
@@ -88,8 +137,10 @@ export default defineComponent({
           minute: "2-digit",
         });
 
+        /**
+         * Логика добавления доп слов после времени.
+         */
         //let midnightTodayTimestamp = new Date().setHours(0, 0, 0, 0);
-
         //test date
         let midnightTodayTimestamp = 1662670800000; //09.09.2022 00:00
         const allDayMs = 86400000;
@@ -118,13 +169,17 @@ export default defineComponent({
             return `${curr}`;
           }
         };
-
         return `с ${setDate1(diffDate1, date1)} до ${setDate2(
           diffDate2,
           date2
         )}`;
       }
     },
+    /**
+     * Геттер для получения массива значений блока даты.
+     * @example
+     * // returns ["Послезавтра","11 сентября"]
+     */
     setDayInDayInfo(): string[] {
       const name = ["Сегодня", "Завтра", "Послезавтра", "Вчера"];
 
