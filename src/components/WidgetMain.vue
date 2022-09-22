@@ -42,9 +42,19 @@ export default defineComponent({
     this.amount();
   },
   computed: {
+    /**
+     * Метод возвращает массив объектов с предупреждениями отфильтрованные и отсортированные
+     * по дате и времени. А также добавляет в объект опциональный параметр, который
+     * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
+     */
     filteredEvents(): Data[] {
       let filters = this.filters;
-
+      /**
+       * Проверяет тип значения свойства eventTime и возвращает определенный timestamp
+       * согласно этому.
+       * @param {Data} event - объект со свойствами, которые определяют
+       * содержание, внешний вид предупреждения
+       */
       const computedEventTime = (event: Data): number => {
         if (typeof event.eventTime === "number") {
           return event.eventTime;
@@ -63,9 +73,13 @@ export default defineComponent({
           .sort((event1, event2): number => {
             return computedEventTime(event1) - computedEventTime(event2);
           })
-          /** Set the isDayShow property mapping the date block. */
+          /**
+           * Параметр isDayShow устанавливается в true если:
+           * - индекс предупреждения равен 0
+           * - у соседних предупреждений разная дата, то параметр isDayShow
+           * устанавливается в true второму предупреждению.
+           */
           .map((event: Data, index: number, arr: Data[]) => {
-            //!!!!
             if (index === 0) {
               return { ...event, isDayShow: true };
             }
@@ -80,6 +94,11 @@ export default defineComponent({
           })
       );
     },
+    /**
+     * Возвращает общее количество примененных фильтров
+     * @example
+     * // returns 3
+     */
     totalActiveFilters(): number {
       return this.filters.reduce(
         (previousValue, currentValue) =>
@@ -89,12 +108,32 @@ export default defineComponent({
     },
   },
   methods: {
+    /**
+     * Возвращает массив объектов с предупреждениями, полученными из store
+     */
     it() {
       return this.$store.state.events;
     },
+    /**
+     * Возвращает массив объектов с фильтрами, полученными из store
+     */
     initialfilters(): Filters[] {
       return this.$store.getters.getFilters;
     },
+    /**
+     * Метод вызывается когда пользователь кликает на кнопку фильтра или
+     * кнопку 'Показать все'.
+     * Параметром принимает объект со свойствами выбранного фильтра или число 100
+     *
+     * Если параметр равен 100, то применяются ВСЕ фильтры у которых общее
+     * количество предупреждений больше 0.
+     *
+     * Если принимается объект, то у данного фильтра меняется свойство isActive на
+     * противоположное при условии, что у него общее количество предупреждений
+     * больше 0.
+     *
+     * @param {Filters} filter
+     */
     changeFilterActive(filter: Filters | 100) {
       if (filter === 100) {
         this.filters = this.filters.map((f) => {
@@ -108,6 +147,13 @@ export default defineComponent({
         );
       }
     },
+    /**
+     * Метод вычисляет общее количество предупреждений с определенным типом и записывает
+     * его в свойство amount объекта фильтра, а также устанавливает свойство isActive в
+     * true если общее количество предупреждений больше 0.
+     *
+     * Возвращает обновленный массив фильтров.
+     */
     amount() {
       this.filters = this.filters.map((f) => {
         const filterAmount = this.events.reduce(

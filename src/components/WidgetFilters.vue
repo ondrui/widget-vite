@@ -84,6 +84,9 @@ import type { Filters } from "@/types/types";
 
 export default defineComponent({
   props: {
+    /**
+     * Массив объектов, которые определяют состояние фильтра и его отображение.
+     */
     filters: {
       type: Array as PropType<Filters[]>,
       required: true,
