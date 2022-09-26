@@ -19,7 +19,7 @@
       <div class="title" :title="event.titleText">{{ event.titleText }}</div>
     </div>
     <div class="block">
-      <div v-if="event.iconCode" class="icon">
+      <div v-show="event.iconCode" class="icon">
         <img :src="setUrlIcon" alt="icon" />
       </div>
       <div class="text">{{ event.eventText }}</div>
@@ -30,7 +30,8 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import type { PropType } from "vue";
-import type { Data } from "@/types/types";
+// import type { Data } from "@/types/types";
+import type { DataClass } from "@/DataClass";
 /**
  * Интерфейс для объекта со свойствами, которые связывают код типа
  * предупреждения eventType из объекта event
@@ -63,7 +64,7 @@ export default defineComponent({
      * "isDayShow":true}
      */
     event: {
-      type: Object as PropType<Data>,
+      type: Object as PropType<DataClass>,
       required: true,
     },
     /**
@@ -183,18 +184,21 @@ export default defineComponent({
     setDayInDayInfo(): string[] {
       const name = ["Сегодня", "Завтра", "Послезавтра", "Вчера"];
 
-      const dateTimestamp =
-        typeof this.event.eventTime === "number"
-          ? this.event.eventTime
-          : this.event.eventTime[0];
+      // const dateTimestamp =
+      //   typeof this.event.eventTime === "number"
+      //     ? this.event.eventTime
+      //     : this.event.eventTime[0];
 
       let options: Intl.DateTimeFormatOptions = {
         month: "long",
         day: "numeric",
       };
-
-      const date = new Date(dateTimestamp).toLocaleString("ru", options);
-      const dayName = new Date(dateTimestamp).getDate();
+      console.log(this.event);
+      const date = new Date(this.event.getTimestamp()).toLocaleString(
+        "ru",
+        options
+      );
+      const dayName = new Date(this.event.getTimestamp()).getDate();
       switch (dayName) {
         case new Date(1662727200000).getDate():
           return [name[0], date];

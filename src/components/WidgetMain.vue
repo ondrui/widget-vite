@@ -9,7 +9,7 @@
     <div class="wrapper">
       <div class="container-main">
         <WidgetMainItem
-          v-for="({ event }, index) in filteredEvents"
+          v-for="(event, index) in filteredEvents"
           :key="`wn-${index}`"
           :event="event"
           :index="+index"
@@ -48,10 +48,10 @@ export default defineComponent({
      * по дате и времени. А также добавляет в объект опциональный параметр, который
      * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
      */
-    filteredEvents(): DataClass[] {
+    filteredEvents() {
       let filters = this.filters;
       /**
-       * Проверяет тип значения свойства eventTime и возвращает определенный timestamp
+       * Проверяет тип значения свойства eventTime и возвращает определенный getTimestamp
        * согласно этому.
        * @param {DataClass} event - объект со свойствами, которые определяют
        * содержание, внешний вид предупреждения
@@ -72,7 +72,7 @@ export default defineComponent({
             });
           })
           .sort((event1, event2): number => {
-            return event1.timestamp() - event2.timestamp();
+            return event1.getTimestamp() - event2.getTimestamp();
           })
           /**
            * Параметр isDayShow устанавливается в true если:
@@ -85,8 +85,8 @@ export default defineComponent({
               return { ...event, isDayShow: true };
             }
             if (
-              new Date(arr[index - 1].timestamp()).getDate() !==
-              new Date(event.timestamp).getDate()
+              new Date(arr[index - 1].getTimestamp()).getDate() !==
+              new Date(event.getTimestamp()).getDate()
             ) {
               return { ...event, isDayShow: true };
             } else {
@@ -159,7 +159,7 @@ export default defineComponent({
       this.filters = this.filters.map((f) => {
         const filterAmount = this.events.reduce(
           (previousValue, currentValue) => {
-            if (currentValue.event.eventType === f.code) {
+            if (currentValue.eventType === f.code) {
               return ++previousValue;
             }
             return previousValue;
