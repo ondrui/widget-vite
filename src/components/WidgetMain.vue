@@ -9,7 +9,7 @@
     <div class="wrapper">
       <div class="container-main">
         <WidgetMainItem
-          v-for="(event, index) in filteredEvents"
+          v-for="({ event }, index) in filteredEvents"
           :key="`wn-${index}`"
           :event="event"
           :index="+index"
@@ -23,7 +23,8 @@
 import { defineComponent } from "vue";
 import WidgetMainItem from "./WidgetMainItem.vue";
 import WidgetFilters from "./WidgetFilters.vue";
-import type { Data, Filters } from "@/types/types";
+import type { Filters } from "@/types/types";
+import type { DataClass } from "./../DataClass";
 
 export default defineComponent({
   components: {
@@ -32,7 +33,7 @@ export default defineComponent({
   },
   data() {
     return {
-      events: [] as Data[],
+      events: [] as DataClass[],
       filters: [] as Filters[],
     };
   },
@@ -47,21 +48,21 @@ export default defineComponent({
      * по дате и времени. А также добавляет в объект опциональный параметр, который
      * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
      */
-    filteredEvents(): Data[] {
+    filteredEvents(): DataClass[] {
       let filters = this.filters;
       /**
        * Проверяет тип значения свойства eventTime и возвращает определенный timestamp
        * согласно этому.
-       * @param {Data} event - объект со свойствами, которые определяют
+       * @param {DataClass} event - объект со свойствами, которые определяют
        * содержание, внешний вид предупреждения
        */
-      const computedEventTime = (event: Data): number => {
-        if (typeof event.eventTime === "number") {
-          return event.eventTime;
-        } else {
-          return event.eventTime[0];
-        }
-      };
+      // const computedEventTime = (event: Data): number => {
+      //   if (typeof event.eventTime === "number") {
+      //     return event.eventTime;
+      //   } else {
+      //     return event.eventTime[0];
+      //   }
+      // };
 
       return (
         this.events
@@ -71,7 +72,7 @@ export default defineComponent({
             });
           })
           .sort((event1, event2): number => {
-            return computedEventTime(event1) - computedEventTime(event2);
+            return event1.timestamp() - event2.timestamp();
           })
           /**
            * Параметр isDayShow устанавливается в true если:
@@ -79,13 +80,13 @@ export default defineComponent({
            * - у соседних предупреждений разная дата, то параметр isDayShow
            * устанавливается в true второму предупреждению.
            */
-          .map((event: Data, index: number, arr: Data[]) => {
+          .map((event, index: number, arr: DataClass[]) => {
             if (index === 0) {
               return { ...event, isDayShow: true };
             }
             if (
-              new Date(computedEventTime(arr[index - 1])).getDate() !==
-              new Date(computedEventTime(event)).getDate()
+              new Date(arr[index - 1].timestamp()).getDate() !==
+              new Date(event.timestamp).getDate()
             ) {
               return { ...event, isDayShow: true };
             } else {
@@ -158,7 +159,7 @@ export default defineComponent({
       this.filters = this.filters.map((f) => {
         const filterAmount = this.events.reduce(
           (previousValue, currentValue) => {
-            if (currentValue.eventType === f.code) {
+            if (currentValue.event.eventType === f.code) {
               return ++previousValue;
             }
             return previousValue;
