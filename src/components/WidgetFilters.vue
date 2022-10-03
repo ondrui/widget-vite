@@ -1,33 +1,26 @@
 <template>
   <div class="filters-list">
     <!--
-      Кнопки фильтров
-      При нажатии посылает в родительский компонент объект со свойствами выбранного фильтра
+      Кнопки фильтров поддерживают управление с клавиатуры.
     -->
     <div
-      @click="$emit('filtered', filter)"
-      class="filter-item"
+      v-for="(filter, key) in filters"
+      @click="useMutationToChangeFilterStatus(key, filter)"
+      @keyup.enter="useMutationToChangeFilterStatus(key, filter)"
+      @keyup.space="useMutationToChangeFilterStatus(key, filter)"
       :class="{
-        active: filter.isActive,
-        /**
-         * Нельзя изменить состояние фильтра при следующих условиях:
-         * - общее количество предупреждений для данного фильтра равно нулю
-         * или
-         * - применен только один данный фильтр
-         */
-        disable:
-          filter.amount === 0 || (totalActiveFilters <= 1 && filter.isActive),
+        'filter-item': 'filter-item',
+        active: isAppliedFilter(filter),
+        disable: isDisabledFilter(filter),
       }"
-      v-for="filter in filters"
-      :key="`fw-${filter.code}`"
+      :key="`fw-${filter}`"
+      :tabindex="isDisabledFilter(filter) ? '' : 0"
+      :title="isLastFilter(filter) ? 'Нельзя отключить все фильтры!' : ''"
     >
       <div>{{ filter.name }}</div>
       <span class="filter-count">{{ filter.amount }}</span>
       <div class="filter-icon-block">
-        <div
-          class="filter-icon-open"
-          v-if="!filter.isActive || filter.amount === 0"
-        >
+        <div class="filter-icon-open" v-if="filter.status !== 0">
           <svg
             width="8"
             height="8"
@@ -63,14 +56,14 @@
       Кнопка 'Показать все'
     -->
     <div
-      @click="$emit('filtered', 100)"
-      class="show-all"
+      @click="$store.commit('resetFilters')"
+      @keyup.enter="$store.commit('resetFilters')"
+      @keyup.space="$store.commit('resetFilters')"
       :class="{
-        /**
-         *  Кнопка 'Показать все' активна если количество примененных фильтров меньше трех.
-         */
-        disable: totalActiveFilters === 3,
+        'show-all': 'show-all',
+        disable: isDisabledShowAll,
       }"
+      :tabindex="isDisabledShowAll ? '' : 0"
     >
       Показать все
     </div>
@@ -80,26 +73,73 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import type { PropType } from "vue";
-import type { Filters } from "@/types/types";
+import type { Filters, Filter } from "@/types/types";
+import { FilterStatus } from "@/basic";
 
 export default defineComponent({
   props: {
     /**
-     * Массив объектов, которые определяют состояние фильтра и его отображение.
+     * Объект, который определяют состояние фильтра и его отображение.
      */
     filters: {
-      type: Array as PropType<Filters[]>,
+      type: Object as PropType<Filters>,
       required: true,
     },
     /**
-     * totalActiveFilters - Общее количество примененных фильтров
+     * totalAppliedFilters - Общее количество примененных фильтров
      */
-    totalActiveFilters: {
+    totalAppliedFilters: {
       type: Number,
       required: true,
     },
   },
-  emits: ["filtered", "remove"],
+  computed: {
+    /**
+     * Определяет состояние кнопки 'Показать все'. Если все фильтры применены, то кнопка неактивна.
+     */
+    isDisabledShowAll(): boolean {
+      const totalDisabledFilters = Object.keys(this.filters).reduce(
+        (previousValue: number, currentValue: string) =>
+          this.filters[+currentValue].status === FilterStatus.Disabled
+            ? previousValue + 1
+            : previousValue,
+        0
+      );
+      return (
+        this.totalAppliedFilters ===
+        Object.keys(this.filters).length - totalDisabledFilters
+      );
+    },
+  },
+  methods: {
+    isAppliedFilter(filter: Filter): boolean {
+      return filter.status === FilterStatus.Applied;
+    },
+    isDisabledFilter(filter: Filter): boolean {
+      return filter.status === FilterStatus.Disabled;
+    },
+    isLastFilter(filter: Filter): boolean {
+      return (
+        this.totalAppliedFilters === 1 && filter.status === FilterStatus.Applied
+      );
+    },
+    /**
+     * Определяет вызывать ли мутацию стора при нажатии на кнопку фильтра.
+     * @param key
+     * @param filter
+     */
+    useMutationToChangeFilterStatus(key: number, filter: Filter): void {
+      /**
+       * Нельзя изменить состояние фильтра при следующих условиях:
+       * - общее количество предупреждений для данного фильтра равно нулю
+       * или
+       * - применен только один данный фильтр
+       */
+      if (filter.status !== FilterStatus.Disabled) {
+        this.$store.commit("changeFilterStatus", key);
+      }
+    },
+  },
 });
 </script>
 
@@ -116,6 +156,7 @@ export default defineComponent({
     font-weight: 400;
     font-size: 12px;
     line-height: 12px;
+    border-radius: 20px;
     margin: auto 0;
     padding: 6px 8px 6px 14px;
     cursor: pointer;

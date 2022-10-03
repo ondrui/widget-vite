@@ -1,104 +1,186 @@
 import { createStore, Store } from "vuex";
-import type { Filters } from "@/types/types";
-import { DataClass } from "./../DataClass";
+
+import type { Data, Filters } from "@/types/types";
+import { FilterStatus } from "@/basic";
+import { HandlerEvent } from "./../handlers/HandlerEvent";
 
 interface RootState {
-  filters: Filters[];
+  filters: Filters;
 
-  events: DataClass[];
+  events: HandlerEvent[];
 }
 
 const store = createStore<RootState>({
   state() {
     return {
-      filters: [
-        { code: 3, amount: 0, name: "Общие", isActive: true },
-        { code: 1, amount: 0, name: "Внимание", isActive: true },
-        { code: 2, amount: 0, name: "Опасно", isActive: true },
-        { code: 5, amount: 0, name: "Очень опасно", isActive: true },
-        { code: 6, amount: 0, name: "Неблагоприятно", isActive: true },
-      ],
-      events: [
-        new DataClass({
-          eventType: 1,
-          eventTime: [1662624030000, 1662730230000],
-          timeFormat: `year, month, day`,
-          titleText: `внимание`,
-          eventText: `1-Thursday, September 8th 2022, 11:00:30 am Максимальный уровень ультрофиолетового излучения за день`,
-          iconCode: 1,
-        }),
-        new DataClass({
-          eventType: 2,
-          eventTime: 1662790800000,
-          timeFormat: `year, month, day`,
-          titleText: `сильный ветер`,
-          eventText: `2-Saturday, September 10th 2022, 9:20:00 am 10 сентября 2022 года, с 10 часов до 21 часов в Москве и ТиНАО и в Московской области ожидается сильный ветер с порывами 12 - 15 м/с.`,
-          iconCode: 2,
-        }),
-        new DataClass({
-          eventType: 3,
-          eventTime: 1662700980000,
-          timeFormat: `year, month, day`,
-          titleText: `заход солнца`,
-          eventText: `3-Friday, September 9th 2022, 8:23:00 am Заход солнца сегодня в 20:23, на 5 минут позже чем вчера, продолжительность дня составила 12 ч. 43 мин. (+ 15 мин.)`,
-        }),
-        new DataClass({
-          eventType: 2,
-          eventTime: 1662699600000,
-          timeFormat: `year, month, day`,
-          titleText: `сильный ветер`,
-          eventText: `4-Friday, September 9th 2022, 8:00:00 am Сегодня в Москве и области ожидается усиление ветра с порывами до 22 м/с`,
-          iconCode: 2,
-        }),
-        new DataClass({
-          eventType: 1,
-          eventTime: [1662700500000, 1662818400000],
-          timeFormat: `year, month, day`,
-          titleText: `внимание`,
-          eventText: `5-Friday, September 9th 2022, 8:15:00 am Максимальный уровень ультрофиолетового излучения за день.`,
-          iconCode: 1,
-        }),
-        new DataClass({
-          eventType: 3,
-          eventTime: 1662742800000,
-          timeFormat: `year, month, day`,
-          titleText: `заход солнца`,
-          eventText: `6-Friday, September 9th 2022, 8:00:00 pm Заход солнца сегодня в 20:23, на 5 минут позже чем вчера, продолжительность дня составила 12 ч. 43 мин. (+ 15 мин.). Lorem ipsum dolor sit amet consectetur, adipisicing elit.`,
-        }),
-        new DataClass({
-          eventType: 2,
-          eventTime: 1662913800000,
-          timeFormat: `year, month, day`,
-          titleText: `сильный ветер`,
-          eventText: `7-Sunday, September 11th 2022, 7:30:00 pm В Москве и области ожидается усиление ветра с порывами до 22 м/с. Заход солнца сегодня в 20:23, на 5 минут позже чем вчера, продолжительность дня составила 12 ч. 43 мин. (+ 15 мин.)`,
-          iconCode: 2,
-        }),
-        new DataClass({
-          eventType: 1,
-          eventTime: [1662613200000, 1663075800000],
-          timeFormat: `year, month, day`,
-          titleText: `внимание`,
-          eventText: `8-Thursday, September 8th 2022, 8:00:00 am Максимальный уровень ультрофиолетового излучения за день.`,
-          iconCode: 1,
-        }),
-        new DataClass({
-          eventType: 2,
-          eventTime: 1662702000000,
-          timeFormat: `year, month, day`,
-          titleText: `сильный ветер`,
-          eventText: `9-Friday, September 9th 2022, 8:40:00 am 9 сентября 2022 года, с 10 часов до 20 часов в Москве и ТиНАО и в Московской области ожидается сильный ветер с порывами 12 - 17 м/с.`,
-          iconCode: 2,
-        }),
-      ],
+      /**
+       * Начальные настройки фильтров.
+       */
+      filters: {
+        3: { name: "Общие", amount: 0, status: 2 },
+        1: { name: "Внимание", amount: 0, status: 2 },
+        2: { name: "Опасно", amount: 0, status: 2 },
+        5: { name: "Очень опасно", amount: 0, status: 2 },
+        6: { name: "Неблагоприятно", amount: 0, status: 2 },
+      },
+      events: [],
     };
   },
-  mutations: {},
-  getters: {
-    getFilters(state) {
-      return state.filters;
+  mutations: {
+    /**
+     * Заполняет store данными, полученными с бэкэнда, предварительно их модифицировав.
+     * @param state
+     * @param payload Объект с фильтрами и массивом предупреждений
+     */
+    setData(state: RootState, payload: RootState): void {
+      /**
+       * Класс HandlerEvent добавляет в объект предупреждения методы,
+       * которые будут применяться в дальнейшем.
+       */
+      state.events = payload.events.map(
+        (event: Data) => new HandlerEvent(event)
+      );
+      /**
+       * Вычисляется общее количество предупреждений с определенным типом и записывает
+       * его в свойство amount объекта фильтра, а также присваивает свойству status значение
+       *  FilterStatus.Applied если общее количество предупреждений больше 0 или
+       * FilterStatus.Disabled, если общее количество предупреждений равно 0.
+       */
+      const filterObj = payload.filters;
+      for (const key in filterObj) {
+        filterObj[key].amount = state.events.filter(
+          (f) => f.eventType === +key
+        ).length;
+
+        if (filterObj[key].amount > 0) {
+          filterObj[key].status = FilterStatus.Applied;
+        } else {
+          filterObj[key].status = FilterStatus.Disabled;
+        }
+      }
+      state.filters = filterObj;
     },
-    getEvents(state) {
-      return state.events;
+
+    /**
+     * Вызывается когда пользователь кликает на
+     * кнопку 'Показать все'.
+     * Применяются ВСЕ фильтры у которых общее
+     * количество предупреждений больше 0.
+     */
+    resetFilters(state: RootState): void {
+      for (const key in state.filters) {
+        if (state.filters[key].amount > 0) {
+          state.filters[key].status = FilterStatus.Applied;
+        }
+      }
+    },
+    /**
+     * Вызывается когда пользователь кликает на кнопку фильтра.
+     * @param {number} payload Параметром принимает код
+     * выбранного фильтра
+     */
+    changeFilterStatus(state: RootState, payload: number): void {
+      /**
+       * totalAppliedFilters возвращает общее количество примененных фильтров
+       * @example
+       * // returns 3
+       */
+      const totalAppliedFilters = (): number => {
+        return Object.keys(state.filters).reduce(
+          (previousValue: number, currentValue: string) => {
+            if (state.filters[+currentValue].status === FilterStatus.Applied) {
+              previousValue++;
+            }
+            return previousValue;
+          },
+          0
+        );
+      };
+      /**
+       * У данного фильтра проверяется значение свойства status.
+       * Если оно равно FilterStatus.Applied, то вычисляется общее
+       * количество фильтров с таким статусом. Если оно больше 1, то статус фильтра
+       * меняется на FilterStatus.Removed.
+       */
+
+      const total = totalAppliedFilters();
+      if (state.filters[payload].status === FilterStatus.Applied && total > 1) {
+        state.filters[payload].status = FilterStatus.Removed;
+      } else {
+        /**
+         * Если значение свойства status равно FilterStatus.Removed, то статус фильтра
+         * меняется на FilterStatus.Applied.
+         */
+        state.filters[payload].status = FilterStatus.Applied;
+      }
+    },
+  },
+  getters: {
+    /**
+     * Возвращает копию объекта с настройками фильтров, полученными из store
+     */
+    addFilters(state: RootState): Filters {
+      const copyFilter: Filters = JSON.parse(JSON.stringify(state.filters));
+      return copyFilter;
+    },
+    /**
+     * Возвращает общее количество примененных фильтров
+     * @example
+     * // returns 3
+     */
+    totalAppliedFilters(state: RootState): number {
+      return Object.keys(state.filters).reduce(
+        (previousValue: number, currentValue: string) => {
+          if (state.filters[+currentValue].status === FilterStatus.Applied) {
+            previousValue++;
+          }
+          return previousValue;
+        },
+        0
+      );
+    },
+    /**
+     * Возвращает копию массива объектов с предупреждениями отфильтрованные и отсортированные
+     * по дате и времени. А также добавляет в объект опциональный параметр, который
+     * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
+     */
+    filteredEvents(state: RootState, getters): Data[] {
+      const copyEvents = [...state.events];
+      const filters = getters.addFilters;
+      return (
+        copyEvents
+          .filter((event: HandlerEvent) => {
+            return Object.keys(filters).some((key: string) => {
+              return (
+                event.eventType === +key &&
+                filters[key].status === FilterStatus.Applied
+              );
+            });
+          })
+          .sort((event1: HandlerEvent, event2: HandlerEvent): number => {
+            return event1.getTimestamp() - event2.getTimestamp();
+          })
+          /** Set the isDayShow property mapping the date block. */
+          /**
+           * Параметр isDayShow устанавливается в true если:
+           * - индекс предупреждения равен 0
+           * - у соседних предупреждений разная дата, то параметр isDayShow
+           * устанавливается в true второму предупреждению.
+           */
+          .map((event: HandlerEvent, index: number, arr: HandlerEvent[]) => {
+            if (index === 0) {
+              return { ...event, isDayShow: true };
+            }
+            if (
+              new Date(arr[index - 1].getTimestamp()).getDate() !==
+              new Date(event.getTimestamp()).getDate()
+            ) {
+              return { ...event, isDayShow: true };
+            } else {
+              return { ...event, isDayShow: false };
+            }
+          })
+      );
     },
   },
 });

@@ -1,20 +1,26 @@
-import type { Data, Datakeys } from "./types/types";
-
-export class DataClass implements Data {
+import type { Data, Datakeys } from "../types/types";
+import type { CodeEvent } from "@/basic";
+/**
+ * Класс HandlerEvent модифицирует данные из объекта предупреждения в соответствии с
+ * потребностью компоненты.
+ * @class
+ */
+export class HandlerEvent implements Data {
   [index: string]:
     | number
     | number[]
     | string
     | boolean
     | undefined
-    | (() => number);
+    | (() => number)
+    | ((timestamp: number) => string);
   /**
    * eventType - Код типа предупреждения (важность). Будет предопределено
    * несколько типов предупреждений. Определяет цветовую схему и параметры
    * используемых шрифтов. Цветовые схемы будут подключаться в корневой
    * компоненте из отдельного файла.
    */
-  eventType!: number;
+  eventType!: CodeEvent;
   /**
    * eventTime - Время действия предупреждения. Может быть точным (одно
    * значение) или интервальным (два значения). Значение времени передается в
@@ -47,10 +53,6 @@ export class DataClass implements Data {
    * Если true, то блок отрисовывается.
    */
   isDayShow?: boolean;
-  /**
-   * Геттер - проверяет тип значения свойства eventTime и возвращает определенный timestamp
-   */
-  //timestamp: number;
 
   constructor(_event: Data) {
     for (const prop in _event) {
@@ -59,12 +61,28 @@ export class DataClass implements Data {
       this[prop] = _event[key];
     }
   }
-
+  /**
+   * Метод проверяет тип значения свойства eventTime и возвращает определенный timestamp
+   */
+  //timestamp: number;
   getTimestamp(): number {
     if (typeof this.eventTime === "number") {
       return this.eventTime;
     } else {
       return this.eventTime[0];
     }
+  }
+
+  /**
+   * Возвращает строку с заданном формате.
+   * @param timestamp Числовое значение даты.
+   * @example
+   * // returns "20:30"
+   */
+  setTimeFormat(timestamp: number): string {
+    return new Date(timestamp).toLocaleTimeString("ru", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 }

@@ -2,18 +2,23 @@
   <div class="widget">
     <h1>Главное</h1>
     <WidgetFilters
-      @filtered="changeFilterActive"
-      :filters="filters"
-      :totalActiveFilters="totalActiveFilters"
+      :filters="getfilters"
+      :totalAppliedFilters="totalAppliedFilters"
     />
     <div class="wrapper">
-      <div class="container-main">
+      <div v-if="getEvents.length" class="container-main">
         <WidgetMainItem
-          v-for="(event, index) in filteredEvents"
+          v-for="(event, index) in getEvents"
           :key="`wn-${index}`"
           :event="event"
           :index="+index"
         />
+      </div>
+      <div class="default-event" v-else>
+        <div>
+          В ближайшее время никаких значимых событий в погоде не ожидается :)
+        </div>
+        <div>Мы сразу сообщим, как появится что-то интересное.</div>
       </div>
     </div>
   </div>
@@ -23,151 +28,33 @@
 import { defineComponent } from "vue";
 import WidgetMainItem from "./WidgetMainItem.vue";
 import WidgetFilters from "./WidgetFilters.vue";
-import type { Filters } from "@/types/types";
-import type { DataClass } from "./../DataClass";
+import type { Data, Filters } from "@/types/types";
 
 export default defineComponent({
   components: {
     WidgetMainItem,
     WidgetFilters,
   },
-  data() {
-    return {
-      events: [] as DataClass[],
-      filters: [] as Filters[],
-    };
-  },
-  created() {
-    this.events = this.it();
-    this.filters = this.initialfilters();
-    this.amount();
-  },
   computed: {
     /**
-     * Метод возвращает массив объектов с предупреждениями отфильтрованные и отсортированные
-     * по дате и времени. А также добавляет в объект опциональный параметр, который
-     * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
+     * Возвращает массив объектов с предупреждениями, полученными из store
      */
-    filteredEvents() {
-      let filters = this.filters;
-      /**
-       * Проверяет тип значения свойства eventTime и возвращает определенный getTimestamp
-       * согласно этому.
-       * @param {DataClass} event - объект со свойствами, которые определяют
-       * содержание, внешний вид предупреждения
-       */
-      // const computedEventTime = (event: Data): number => {
-      //   if (typeof event.eventTime === "number") {
-      //     return event.eventTime;
-      //   } else {
-      //     return event.eventTime[0];
-      //   }
-      // };
-
-      return (
-        this.events
-          .filter((event) => {
-            return filters.some((f) => {
-              return f.code === event.eventType && f.isActive;
-            });
-          })
-          .sort((event1, event2): number => {
-            return event1.getTimestamp() - event2.getTimestamp();
-          })
-          /**
-           * Параметр isDayShow устанавливается в true если:
-           * - индекс предупреждения равен 0
-           * - у соседних предупреждений разная дата, то параметр isDayShow
-           * устанавливается в true второму предупреждению.
-           */
-          .map((event, index: number, arr: DataClass[]) => {
-            if (index === 0) {
-              return { ...event, isDayShow: true };
-            }
-            if (
-              new Date(arr[index - 1].getTimestamp()).getDate() !==
-              new Date(event.getTimestamp()).getDate()
-            ) {
-              return { ...event, isDayShow: true };
-            } else {
-              return { ...event, isDayShow: false };
-            }
-          })
-      );
+    getEvents(): Data[] {
+      return this.$store.getters.filteredEvents;
+    },
+    /**
+     * Возвращает объект с фильтрами, полученными из store
+     */
+    getfilters(): Filters {
+      return this.$store.getters.addFilters;
     },
     /**
      * Возвращает общее количество примененных фильтров
      * @example
      * // returns 3
      */
-    totalActiveFilters(): number {
-      return this.filters.reduce(
-        (previousValue, currentValue) =>
-          currentValue.isActive ? ++previousValue : previousValue,
-        0
-      );
-    },
-  },
-  methods: {
-    /**
-     * Возвращает массив объектов с предупреждениями, полученными из store
-     */
-    it() {
-      return this.$store.state.events;
-    },
-    /**
-     * Возвращает массив объектов с фильтрами, полученными из store
-     */
-    initialfilters(): Filters[] {
-      return this.$store.getters.getFilters;
-    },
-    /**
-     * Метод вызывается когда пользователь кликает на кнопку фильтра или
-     * кнопку 'Показать все'.
-     * Параметром принимает объект со свойствами выбранного фильтра или число 100
-     *
-     * Если параметр равен 100, то применяются ВСЕ фильтры у которых общее
-     * количество предупреждений больше 0.
-     *
-     * Если принимается объект, то у данного фильтра меняется свойство isActive на
-     * противоположное при условии, что у него общее количество предупреждений
-     * больше 0.
-     *
-     * @param {Filters} filter
-     */
-    changeFilterActive(filter: Filters | 100) {
-      if (filter === 100) {
-        this.filters = this.filters.map((f) => {
-          return { ...f, isActive: f.amount > 0 };
-        });
-      } else {
-        this.filters = this.filters.map((f) =>
-          f.code === filter.code && f.amount > 0
-            ? { ...f, isActive: !f.isActive }
-            : f
-        );
-      }
-    },
-    /**
-     * Метод вычисляет общее количество предупреждений с определенным типом и записывает
-     * его в свойство amount объекта фильтра, а также устанавливает свойство isActive в
-     * true если общее количество предупреждений больше 0.
-     *
-     * Возвращает обновленный массив фильтров.
-     */
-    amount() {
-      this.filters = this.filters.map((f) => {
-        const filterAmount = this.events.reduce(
-          (previousValue, currentValue) => {
-            if (currentValue.eventType === f.code) {
-              return ++previousValue;
-            }
-            return previousValue;
-          },
-          0
-        );
-        return { ...f, amount: filterAmount, isActive: filterAmount > 0 };
-      });
+    totalAppliedFilters(): number {
+      return this.$store.getters.totalAppliedFilters;
     },
   },
 });
@@ -195,6 +82,20 @@ export default defineComponent({
   // height: calc(100% - 101px);
   max-height: 448px;
   display: flex;
+}
+.default-event {
+  width: 100%;
+  margin: 21px 5px 10px 0px;
+  padding: 14px 15px;
+  background: $color-filters-day-dark;
+  color: $color-filters-day-darker;
+  border-radius: 10px;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  & > div {
+    margin-bottom: 15px;
+  }
 }
 .container-main {
   display: flex;

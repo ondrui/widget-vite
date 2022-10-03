@@ -1,3 +1,4 @@
+import type { FilterStatus, CodeEvent } from "@/basic";
 /**
  * Интерфейс для объекта со свойствами, которые определяют содержание и внешний вид предупреждения.
  */
@@ -8,7 +9,7 @@ export interface Data {
    * используемых шрифтов. Цветовые схемы будут подключаться в корневой
    * компоненте из отдельного файла.
    */
-  eventType: number;
+  eventType: CodeEvent;
   /**
    * eventTime - Время действия предупреждения. Может быть точным (одно
    * значение) или интервальным (два значения). Значение времени передается в
@@ -41,10 +42,27 @@ export interface Data {
    * Если true, то блок отрисовывается.
    */
   isDayShow?: boolean;
+}
+
+/**
+ * Интерфейс фильтра.
+ */
+export interface Filter {
   /**
-   * Геттер - проверяет тип значения свойства eventTime и возвращает определенный timestamp
+   * name - Наименование фильтра.
    */
-  //timestamp: number;
+  name: string;
+  /**
+   * amount - Общее количество предупреждений с одинаковым кодом.
+   */
+  amount: number;
+  /**
+   * status - Отвечает за состояние кнопки фильтра. Возможно 3 состояния:
+   * disabled - кнопка заблокирована и неактивна
+   * applied - фильтр применен
+   * removed - фильтр не применен
+   */
+  status: FilterStatus;
 }
 
 /**
@@ -52,22 +70,10 @@ export interface Data {
  * и их состояниями.
  */
 export interface Filters {
-  /**
-   * code - Код фильтра совпадает с кодом предупреждения eventType.
-   */
-  code: number;
-  /**
-   * amount - Общее количество предупреждений с одинаковым кодом.
-   */
-  amount: number;
-  /**
-   * name - Наименование фильтра.
-   */
-  name: string;
-  /**
-   * isActive - Отвечает за применение фильтра. Если true, то данный фильтр применяется.
-   */
-  isActive: boolean;
+  [index: number]: Filter;
 }
 
+/**
+ * Вспомогательный интерфейс.
+ */
 export type Datakeys = keyof Data;
