@@ -6,16 +6,16 @@
   -->
   <div
     :class="'day-info ' + (index !== 0 ? '' : 'day-info-zero-index')"
-    v-show="event.isDayShow && setDayInDayInfo[0]"
+    v-show="event.isDayShow && calcDayInDayInfo[0]"
   >
     <span class="day-info-name">
-      <strong>{{ setDayInDayInfo[0] }}: </strong>
+      <strong>{{ calcDayInDayInfo[0] }}: </strong>
     </span>
-    <span class="day-info-number-month">{{ setDayInDayInfo[1] }}</span>
+    <span class="day-info-number-month">{{ calcDayInDayInfo[1] }}</span>
   </div>
   <div :class="'container-item ' + EventColorScheme">
     <div class="top-info">
-      <div class="time">{{ setTimeEvent }}</div>
+      <div class="time">{{ calcTimeEvent }}</div>
       <div class="title" :title="event.titleText">{{ event.titleText }}</div>
     </div>
     <div class="block">
@@ -32,7 +32,7 @@ import { defineComponent } from "vue";
 import type { PropType } from "vue";
 import type { Data } from "@/types/types";
 import { HandlerEvent } from "@/handlers/HandlerEvent";
-import { CodeEvent, allDayMs, dayName } from "@/basic";
+import { CodeEvent, ALLDAYMS, timeMarker, LOCALES } from "@/basic";
 
 /**
  * Интерфейс для объекта со свойствами, которые связывают код иконки
@@ -69,6 +69,10 @@ export default defineComponent({
   },
   data() {
     return {
+      /**
+       * Объект со свойствами, которые связывают код иконки
+       * предупреждения iconCode из объекта event и названием файла иконки.
+       */
       iconItem: {
         2: "wind",
         1: "uv-index",
@@ -100,20 +104,22 @@ export default defineComponent({
         : (console.log("нет иконки"), "#");
     },
     /**
-     * Геттер для получения время действия предупреждения и его срока.
+     * Геттер для вычисления время действия предупреждения и его срока.
      * Может быть точным (одно значение) или интервальным (два значения).
      * @example
      * // returns 'с 08:00 вчера до 16:30 послезавтра'
      * // returns '08:00'
      */
-    setTimeEvent(): string {
-      const handlerEvent = new HandlerEvent(this.event);
+    calcTimeEvent(): string {
       /**
        * Проверка значения свойства eventTime и преобразование этого значения в нужный
        * формат отображения времени.
        */
       if (typeof this.event.eventTime === "number") {
-        return handlerEvent.setTimeFormat(this.event.eventTime);
+        return HandlerEvent.setTimeFormat(
+          this.event.eventTime,
+          this.event.timeFormat
+        );
       }
 
       const [timeStamp1, timeStamp2] = this.event.eventTime;
@@ -121,14 +127,17 @@ export default defineComponent({
       /**
        * Логика добавления доп слов после времени.
        */
-      return `с ${handlerEvent.setTimeFormat(timeStamp1)} ${
-        this.addDayName(timeStamp1).toLocaleLowerCase() === "вчера"
-          ? this.addDayName(timeStamp1).toLocaleLowerCase()
+      return `с ${HandlerEvent.setTimeFormat(
+        timeStamp1,
+        this.event.timeFormat
+      )} ${
+        this.getTimeMarker(timeStamp1) === timeMarker[0]
+          ? this.getTimeMarker(timeStamp1).toLocaleLowerCase()
           : ""
-      } до ${handlerEvent.setTimeFormat(timeStamp2)} ${
-        this.addDayName(timeStamp2).toLocaleLowerCase() === "сегодня"
+      } до ${HandlerEvent.setTimeFormat(timeStamp2, this.event.timeFormat)} ${
+        this.getTimeMarker(timeStamp2) === timeMarker[1]
           ? ""
-          : this.addDayName(timeStamp2).toLocaleLowerCase()
+          : this.getTimeMarker(timeStamp2).toLocaleLowerCase()
       }`;
     },
     /**
@@ -136,14 +145,14 @@ export default defineComponent({
      * @example
      * // returns ["Послезавтра","11 сентября"]
      */
-    setDayInDayInfo(): string[] {
+    calcDayInDayInfo(): string[] {
       const dateTimestamp = new HandlerEvent(this.event).getTimestamp();
       let options: Intl.DateTimeFormatOptions = {
         month: "long",
         day: "numeric",
       };
-      const date = new Date(dateTimestamp).toLocaleString("ru", options);
-      return [this.addDayName(dateTimestamp), date];
+      const date = new Date(dateTimestamp).toLocaleString(LOCALES, options);
+      return [this.getTimeMarker(dateTimestamp), date];
     },
   },
   methods: {
@@ -153,11 +162,11 @@ export default defineComponent({
      * @example
      * // returns ["Послезавтра"]
      */
-    addDayName(timestamp: number): string {
+    getTimeMarker(timestamp: number): string {
       let diff = Math.floor(
-        (timestamp - (new Date().setHours(0, 0, 0, 0) - allDayMs)) / allDayMs
+        (timestamp - (new Date().setHours(0, 0, 0, 0) - ALLDAYMS)) / ALLDAYMS
       );
-      return dayName[diff] ?? (console.log("неверный диапазон"), "");
+      return timeMarker[diff] ?? (console.log("неверный диапазон"), "");
     },
   },
 });

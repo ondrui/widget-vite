@@ -1,7 +1,7 @@
 import { createStore, Store } from "vuex";
 
-import type { Data, Filters } from "@/types/types";
-import { FilterStatus } from "@/basic";
+import type { Data, Filters, Filter } from "@/types/types";
+import { FilterStatus, defaultFilters } from "@/basic";
 import { HandlerEvent } from "./../handlers/HandlerEvent";
 
 interface RootState {
@@ -16,15 +16,20 @@ const store = createStore<RootState>({
       /**
        * Начальные настройки фильтров.
        */
-      filters: {
-        3: { name: "Общие", amount: 0, status: 2 },
-        1: { name: "Внимание", amount: 0, status: 2 },
-        2: { name: "Опасно", amount: 0, status: 2 },
-        5: { name: "Очень опасно", amount: 0, status: 2 },
-        6: { name: "Неблагоприятно", amount: 0, status: 2 },
-      },
+      filters: defaultFilters,
       events: [],
     };
+  },
+  actions: {
+    /**
+     *
+     * @param param
+     * @param payload
+     */
+    changeFilterStatus({ commit, getters }, payload: number) {
+      const total: number = getters.calcTotalFilters(FilterStatus.Applied);
+      commit("changeFilterStatus", [total, payload]);
+    },
   },
   mutations: {
     /**
@@ -32,31 +37,39 @@ const store = createStore<RootState>({
      * @param state
      * @param payload Объект с фильтрами и массивом предупреждений
      */
-    setData(state: RootState, payload: RootState): void {
+    setData(
+      state: RootState,
+      payload: { events?: Data[]; filters?: Filters }
+    ): void {
+      let { events, filters } = payload;
+      if (events == null) {
+        events = [];
+      }
+
+      if (filters == null) {
+        filters = [];
+      }
       /**
        * Класс HandlerEvent добавляет в объект предупреждения методы,
        * которые будут применяться в дальнейшем.
        */
-      state.events = payload.events.map(
-        (event: Data) => new HandlerEvent(event)
-      );
+      state.events = events.map((event: Data) => new HandlerEvent(event));
       /**
        * Вычисляется общее количество предупреждений с определенным типом и записывает
        * его в свойство amount объекта фильтра, а также присваивает свойству status значение
        *  FilterStatus.Applied если общее количество предупреждений больше 0 или
        * FilterStatus.Disabled, если общее количество предупреждений равно 0.
        */
-      const filterObj = payload.filters;
+      const filterObj = filters;
       for (const key in filterObj) {
-        filterObj[key].amount = state.events.filter(
+        filterObj[key].amount = state.events?.filter(
           (f) => f.eventType === +key
         ).length;
 
-        if (filterObj[key].amount > 0) {
-          filterObj[key].status = FilterStatus.Applied;
-        } else {
-          filterObj[key].status = FilterStatus.Disabled;
-        }
+        filterObj[key].status =
+          filterObj[key].amount > 0
+            ? FilterStatus.Applied
+            : FilterStatus.Disabled;
       }
       state.filters = filterObj;
     },
@@ -74,111 +87,87 @@ const store = createStore<RootState>({
         }
       }
     },
+
     /**
      * Вызывается когда пользователь кликает на кнопку фильтра.
      * @param {number} payload Параметром принимает код
      * выбранного фильтра
      */
-    changeFilterStatus(state: RootState, payload: number): void {
+    changeFilterStatus(state: RootState, payload: number[]): void {
       /**
-       * totalAppliedFilters возвращает общее количество примененных фильтров
-       * @example
-       * // returns 3
-       */
-      const totalAppliedFilters = (): number => {
-        return Object.keys(state.filters).reduce(
-          (previousValue: number, currentValue: string) => {
-            if (state.filters[+currentValue].status === FilterStatus.Applied) {
-              previousValue++;
-            }
-            return previousValue;
-          },
-          0
-        );
-      };
-      /**
-       * У данного фильтра проверяется значение свойства status.
+       * У фильтра проверяется значение свойства status.
+       *
        * Если оно равно FilterStatus.Applied, то вычисляется общее
        * количество фильтров с таким статусом. Если оно больше 1, то статус фильтра
        * меняется на FilterStatus.Removed.
+       *
+       * Если значение свойства status равно FilterStatus.Removed, то статус фильтра
+       * меняется на FilterStatus.Applied.
        */
 
-      const total = totalAppliedFilters();
-      if (state.filters[payload].status === FilterStatus.Applied && total > 1) {
-        state.filters[payload].status = FilterStatus.Removed;
-      } else {
-        /**
-         * Если значение свойства status равно FilterStatus.Removed, то статус фильтра
-         * меняется на FilterStatus.Applied.
-         */
-        state.filters[payload].status = FilterStatus.Applied;
-      }
+      state.filters[payload[1]].status =
+        state.filters[payload[1]].status === FilterStatus.Applied &&
+        payload[0] > 1
+          ? FilterStatus.Removed
+          : FilterStatus.Applied;
     },
   },
   getters: {
     /**
      * Возвращает копию объекта с настройками фильтров, полученными из store
      */
-    addFilters(state: RootState): Filters {
+    getFilters(state: RootState): Filters {
       const copyFilter: Filters = JSON.parse(JSON.stringify(state.filters));
       return copyFilter;
     },
     /**
-     * Возвращает общее количество примененных фильтров
+     * Вычисляет и возвращает общее количество фильтров со статусом FilterStatus.Applied.
      * @example
+     * @param state
+     * @returns
      * // returns 3
      */
-    totalAppliedFilters(state: RootState): number {
-      return Object.keys(state.filters).reduce(
-        (previousValue: number, currentValue: string) => {
-          if (state.filters[+currentValue].status === FilterStatus.Applied) {
-            previousValue++;
-          }
-          return previousValue;
-        },
-        0
-      );
-    },
+    calcTotalFilters:
+      (state: RootState): ((status: FilterStatus) => number) =>
+      (status: FilterStatus): number => {
+        return Object.values(state.filters).reduce<number>(
+          (previousValue: number, currentValue: Filter) =>
+            currentValue.status === status ? previousValue + 1 : previousValue,
+          0
+        );
+      },
     /**
      * Возвращает копию массива объектов с предупреждениями отфильтрованные и отсортированные
      * по дате и времени. А также добавляет в объект опциональный параметр, который
      * отвечает за отображение блока с датой. Если true, то блок отрисовывается.
      */
-    filteredEvents(state: RootState, getters): Data[] {
+    getFilteredAndSortedEvents(state: RootState, getters): Data[] {
       const copyEvents = [...state.events];
-      const filters = getters.addFilters;
+      const filters: Filters = getters.getFilters;
       return (
         copyEvents
-          .filter((event: HandlerEvent) => {
-            return Object.keys(filters).some((key: string) => {
-              return (
-                event.eventType === +key &&
-                filters[key].status === FilterStatus.Applied
-              );
-            });
-          })
+          .filter(
+            (event: HandlerEvent) =>
+              filters[event.eventType].status === FilterStatus.Applied
+          )
           .sort((event1: HandlerEvent, event2: HandlerEvent): number => {
             return event1.getTimestamp() - event2.getTimestamp();
           })
           /** Set the isDayShow property mapping the date block. */
           /**
-           * Параметр isDayShow устанавливается в true если:
-           * - индекс предупреждения равен 0
+           * Значение свойства isDayShow устанавливается в true если:
+           * - индекс предупреждения равен 0 или
            * - у соседних предупреждений разная дата, то параметр isDayShow
            * устанавливается в true второму предупреждению.
            */
           .map((event: HandlerEvent, index: number, arr: HandlerEvent[]) => {
-            if (index === 0) {
-              return { ...event, isDayShow: true };
-            }
-            if (
-              new Date(arr[index - 1].getTimestamp()).getDate() !==
-              new Date(event.getTimestamp()).getDate()
-            ) {
-              return { ...event, isDayShow: true };
-            } else {
-              return { ...event, isDayShow: false };
-            }
+            return {
+              ...event,
+              isDayShow:
+                index === 0 ||
+                new Date(arr[index - 1].getTimestamp()).getDate() !==
+                  new Date(event.getTimestamp()).getDate(),
+            };
           })
       );
     },

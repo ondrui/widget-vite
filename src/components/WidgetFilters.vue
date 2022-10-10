@@ -20,7 +20,7 @@
       <div>{{ filter.name }}</div>
       <span class="filter-count">{{ filter.amount }}</span>
       <div class="filter-icon-block">
-        <div class="filter-icon-open" v-if="filter.status !== 0">
+        <div :class="filterIconSwitch(filter)[0]">
           <svg
             width="8"
             height="8"
@@ -31,22 +31,7 @@
             <path
               fill-rule="evenodd"
               clip-rule="evenodd"
-              d="M3.5 4.5L3.5 8H4.5L4.5 4.5H8L8 3.5L4.5 3.5L4.5 0L3.5 0L3.5 3.5L0 3.5L0 4.5L3.5 4.5Z"
-            />
-          </svg>
-        </div>
-        <div class="filter-icon-close" v-else>
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            fill="#C4C4C4"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              d="M4.07115 4.7784L7.25309 7.96033L7.9602 7.25323L4.77826 4.07129L7.9602 0.88935L7.25309 0.182244L4.07115 3.36418L0.889129 0.18216L0.182022 0.889267L3.36404 4.07129L0.182022 7.25331L0.889129 7.96042L4.07115 4.7784Z"
+              :d="filterIconSwitch(filter)[1]"
             />
           </svg>
         </div>
@@ -74,12 +59,20 @@
 import { defineComponent } from "vue";
 import type { PropType } from "vue";
 import type { Filters, Filter } from "@/types/types";
-import { FilterStatus } from "@/basic";
+import { FilterStatus, filterIconOpen, filterIconClose } from "@/basic";
 
 export default defineComponent({
   props: {
     /**
-     * Объект, который определяют состояние фильтра и его отображение.
+     * Объект, который определяет состояние фильтра и его отображение.
+     * @example
+     * {
+     * 3: { name: "Общие", amount: 2, status: 2 },
+     * 1: { name: "Внимание", amount: 1, status: 2 },
+     * 2: { name: "Опасно", amount: 4, status: 2 },
+     * 5: { name: "Очень опасно", amount: 0, status: 2 },
+     * 6: { name: "Неблагоприятно", amount: 0, status: 2 },
+     * }
      */
     filters: {
       type: Object as PropType<Filters>,
@@ -98,16 +91,10 @@ export default defineComponent({
      * Определяет состояние кнопки 'Показать все'. Если все фильтры применены, то кнопка неактивна.
      */
     isDisabledShowAll(): boolean {
-      const totalDisabledFilters = Object.keys(this.filters).reduce(
-        (previousValue: number, currentValue: string) =>
-          this.filters[+currentValue].status === FilterStatus.Disabled
-            ? previousValue + 1
-            : previousValue,
-        0
-      );
       return (
         this.totalAppliedFilters ===
-        Object.keys(this.filters).length - totalDisabledFilters
+        Object.keys(this.filters).length -
+          this.$store.getters.calcTotalFilters(FilterStatus.Disabled)
       );
     },
   },
@@ -125,8 +112,8 @@ export default defineComponent({
     },
     /**
      * Определяет вызывать ли мутацию стора при нажатии на кнопку фильтра.
-     * @param key
-     * @param filter
+     * @param key Код фильтра.
+     * @param filter Объект содержит настройки фильтров.
      */
     useMutationToChangeFilterStatus(key: number, filter: Filter): void {
       /**
@@ -136,8 +123,15 @@ export default defineComponent({
        * - применен только один данный фильтр
        */
       if (filter.status !== FilterStatus.Disabled) {
-        this.$store.commit("changeFilterStatus", key);
+        this.$store.dispatch("changeFilterStatus", key);
       }
+    },
+    /**
+     * Возвращает массив с параметрами отображения иконки фильтра.
+     * @param filter Объект содержит настройки фильтров.
+     */
+    filterIconSwitch(filter: Filter): string[] {
+      return !this.isAppliedFilter(filter) ? filterIconOpen : filterIconClose;
     },
   },
 });

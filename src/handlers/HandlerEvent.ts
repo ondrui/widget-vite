@@ -1,5 +1,10 @@
-import type { Data, Datakeys } from "../types/types";
-import type { CodeEvent } from "@/basic";
+import type { Data, Datakeys, KeyNameListFormat } from "../types/types";
+import {
+  CodeEvent,
+  defaultOptionsDateTimeFormat,
+  LOCALES,
+  formatListDateTime,
+} from "@/basic";
 /**
  * Класс HandlerEvent модифицирует данные из объекта предупреждения в соответствии с
  * потребностью компоненты.
@@ -13,7 +18,7 @@ export class HandlerEvent implements Data {
     | boolean
     | undefined
     | (() => number)
-    | ((timestamp: number) => string);
+    | ((timestamp: number, format: string) => string);
   /**
    * eventType - Код типа предупреждения (важность). Будет предопределено
    * несколько типов предупреждений. Определяет цветовую схему и параметры
@@ -57,7 +62,6 @@ export class HandlerEvent implements Data {
   constructor(_event: Data) {
     for (const prop in _event) {
       const key = prop as Datakeys;
-
       this[prop] = _event[key];
     }
   }
@@ -65,24 +69,47 @@ export class HandlerEvent implements Data {
    * Метод проверяет тип значения свойства eventTime и возвращает определенный timestamp
    */
   //timestamp: number;
-  getTimestamp(): number {
-    if (typeof this.eventTime === "number") {
-      return this.eventTime;
-    } else {
-      return this.eventTime[0];
-    }
-  }
+  getTimestamp = (): number =>
+    typeof this.eventTime === "number" ? this.eventTime : this.eventTime[0];
 
   /**
-   * Возвращает строку с заданном формате.
+   * Возвращает строку с датой и временем в заданном формате.
    * @param timestamp Числовое значение даты.
+   * @param format Строковое представление формата.
    * @example
    * // returns "20:30"
    */
-  setTimeFormat(timestamp: number): string {
-    return new Date(timestamp).toLocaleTimeString("ru", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  static setTimeFormat(timestamp: number, format: string): string {
+    const options = { ...defaultOptionsDateTimeFormat };
+
+    /**
+     * Формируем объект с заданными свойствами форматирования даты и времени.
+     */
+    for (const key in formatListDateTime) {
+      const value = formatListDateTime[key as KeyNameListFormat];
+      if (format.includes(key)) {
+        options[value[0]] = value[1];
+      }
+    }
+
+    /**
+     * Массив объектов, содержащий отформатированную дату по частям.
+     */
+    const datePartsArr = new Intl.DateTimeFormat(
+      LOCALES,
+      options
+    ).formatToParts(timestamp);
+
+    /**
+     * Формируем строку дата-время с заданным форматированием.
+     */
+    let dateFormated = format;
+    for (const key in formatListDateTime) {
+      const value = formatListDateTime[key as KeyNameListFormat];
+      const item = datePartsArr.find((i) => i.type === value[0]);
+      dateFormated = dateFormated.replace(key, item == null ? "" : item.value);
+    }
+
+    return dateFormated;
   }
 }

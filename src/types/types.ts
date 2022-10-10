@@ -17,7 +17,7 @@ export interface Data {
    */
   eventTime: number | number[];
   /**
-   * timeFormat -  Формат отображения времени. Возможные варианты:
+   * timeFormat -  Формат отображения времени и даты. Возможные варианты:
    * часы:минуты; часы:минуты день:месяц; другие.
    */
   timeFormat: string;
@@ -58,9 +58,9 @@ export interface Filter {
   amount: number;
   /**
    * status - Отвечает за состояние кнопки фильтра. Возможно 3 состояния:
-   * disabled - кнопка заблокирована и неактивна
-   * applied - фильтр применен
-   * removed - фильтр не применен
+   * @property {number} Applied - кнопка заблокирована и неактивна
+   * @property {number} Removed - фильтр применен
+   * @property {number} Disabled - фильтр не применен
    */
   status: FilterStatus;
 }
@@ -74,6 +74,21 @@ export interface Filters {
 }
 
 /**
- * Вспомогательный интерфейс.
+ * Вспомогательный тип.
  */
 export type Datakeys = keyof Data;
+
+/**
+ * Тип для ключей объекта формата отображения времени и даты.
+ */
+export type KeyNameListFormat =
+  | "d"
+  | "D"
+  | "l"
+  | "m"
+  | "F"
+  | "M"
+  | "Y"
+  | "H"
+  | "i"
+  | "S";

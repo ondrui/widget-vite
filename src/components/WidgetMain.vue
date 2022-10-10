@@ -16,9 +16,9 @@
       </div>
       <div class="default-event" v-else>
         <div>
-          В ближайшее время никаких значимых событий в погоде не ожидается :)
+          {{ defaultEventMessage[0] }}
         </div>
-        <div>Мы сразу сообщим, как появится что-то интересное.</div>
+        <div>{{ defaultEventMessage[1] }}</div>
       </div>
     </div>
   </div>
@@ -29,24 +29,30 @@ import { defineComponent } from "vue";
 import WidgetMainItem from "./WidgetMainItem.vue";
 import WidgetFilters from "./WidgetFilters.vue";
 import type { Data, Filters } from "@/types/types";
+import { FilterStatus, defaultEventMessage } from "@/basic";
 
 export default defineComponent({
   components: {
     WidgetMainItem,
     WidgetFilters,
   },
+  data() {
+    return {
+      defaultEventMessage,
+    };
+  },
   computed: {
     /**
      * Возвращает массив объектов с предупреждениями, полученными из store
      */
     getEvents(): Data[] {
-      return this.$store.getters.filteredEvents;
+      return this.$store.getters.getFilteredAndSortedEvents;
     },
     /**
      * Возвращает объект с фильтрами, полученными из store
      */
     getfilters(): Filters {
-      return this.$store.getters.addFilters;
+      return this.$store.getters.getFilters;
     },
     /**
      * Возвращает общее количество примененных фильтров
@@ -54,7 +60,7 @@ export default defineComponent({
      * // returns 3
      */
     totalAppliedFilters(): number {
-      return this.$store.getters.totalAppliedFilters;
+      return this.$store.getters.calcTotalFilters(FilterStatus.Applied);
     },
   },
 });
